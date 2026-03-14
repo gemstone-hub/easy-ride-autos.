@@ -36,9 +36,10 @@ export async function updateSession(request) {
   } = await supabase.auth.getUser()
 
   const publicRoutes = ['/', '/login', '/signup']
-  const isPublicRoute = publicRoutes.some(route => 
-    request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`)
-  )
+  const isPublicRoute = publicRoutes.some(route => {
+    if (route === '/') return request.nextUrl.pathname === '/';
+    return request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`);
+  })
 
   if (!user && !isPublicRoute) {
     // no user, potentially respond by redirecting the user to the login page
