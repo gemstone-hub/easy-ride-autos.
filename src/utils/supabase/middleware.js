@@ -45,16 +45,31 @@ export async function updateSession(request) {
 
   if (isExcluded) return supabaseResponse;
 
-  const protectedRoutes = ['/admin', '/account'];
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname === route || pathname.startsWith(`${route}/`)
-  );
+  // Define routes that are ALWAYS public
+  const publicRoutes = ['/', '/login', '/signup'];
+  const isPublicRoute = publicRoutes.includes(pathname);
 
-  if (!user && isProtectedRoute) {
+  // If user is not logged in and trying to access a non-public route, redirect to login
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(url)
+  }
+
+  // Admin protection
+  if (user && pathname.startsWith('/admin')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

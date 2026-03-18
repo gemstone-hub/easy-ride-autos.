@@ -51,7 +51,7 @@ const Hero = ({ cars = [] }) => {
             transition={{ duration: 1, ease: "easeOut" }}
             className="relative"
           >
-            <div className="relative z-10 rounded-[2.5rem] overflow-hidden border border-brand-gray/50 shadow-2xl">
+            <div className="relative z-10 rounded-[2.5rem] overflow-hidden border border-brand-gray/50 shadow-2xl h-[300px] sm:h-[400px] md:h-[500px]">
               <Image 
                 src={cars[0]?.image || "/images/hero-suv.png"} 
                 alt="Premium Vehicle" 

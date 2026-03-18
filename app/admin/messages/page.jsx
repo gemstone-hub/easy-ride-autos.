@@ -140,20 +140,25 @@ export default function AdminMessagesPage() {
   };
 
   const handleReplyViaChat = async (email) => {
-    let user = chatUsers.find(u => u.email === email);
+    const cleanEmail = email.trim().toLowerCase();
+    console.log('Searching for chat user with email:', cleanEmail);
+    
+    let user = chatUsers.find(u => u.email.trim().toLowerCase() === cleanEmail);
     
     if (!user) {
       setLoading(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('email', email)
-        .single();
+        .ilike('email', cleanEmail)
+        .maybeSingle();
       setLoading(false);
 
       if (data) {
         user = data;
         setChatUsers(prev => [user, ...prev]);
+      } else if (error) {
+        console.error('Error finding profile:', error);
       }
     }
 
@@ -161,7 +166,7 @@ export default function AdminMessagesPage() {
       setSelectedChatUser(user);
       setViewMode('chats');
     } else {
-      alert('This user is not registered on the platform. Please reply via email.');
+      alert(`User with email "${cleanEmail}" is not registered on the platform. They must create an account first.`);
     }
   };
 
