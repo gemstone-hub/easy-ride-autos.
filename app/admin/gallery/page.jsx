@@ -1,13 +1,24 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { Plus, Edit2, Trash2, ArrowLeftRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, ArrowLeftRight, X, Loader2 } from 'lucide-react';
 import Button from '../../../src/components/ui/Button';
+import Input from '../../../src/components/ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
+import Image from 'next/image';
 
 export default function AdminGalleryPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    before_image: '',
+    after_image: ''
+  });
 
   const fetchGallery = async () => {
     setLoading(true);
@@ -37,8 +48,36 @@ export default function AdminGalleryPage() {
       const { error } = await supabase.from('gallery_items').delete().eq('id', id);
       if (error) throw error;
       setItems(items.filter(item => item.id !== id));
+      toast.success('Project deleted');
     } catch (error) {
-      alert('Error deleting gallery item: ' + error.message);
+      toast.error('Error deleting gallery item: ' + error.message);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .from('gallery_items')
+        .insert([formData])
+        .select();
+
+      if (error) throw error;
+      
+      setItems([data[0], ...items]);
+      setIsModalOpen(false);
+      setFormData({ title: '', description: '', before_image: '', after_image: '' });
+      toast.success('Project added successfully');
+    } catch (error) {
+      toast.error('Failed to add project: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -52,7 +91,7 @@ export default function AdminGalleryPage() {
         <Button 
           variant="primary" 
           className="flex items-center gap-2 py-3"
-          onClick={() => alert('Gallery Form will be implemented in next phase')}
+          onClick={() => setIsModalOpen(true)}
         >
           <Plus size={20} />
           Add Project
@@ -79,8 +118,12 @@ export default function AdminGalleryPage() {
                 <div className="relative aspect-video bg-brand-dark">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="relative w-full h-full flex">
-                        <img src={item.before_image} alt="Before" className="w-1/2 h-full object-cover border-r border-brand-orange/50" />
-                        <img src={item.after_image} alt="After" className="w-1/2 h-full object-cover" />
+                        <div className="relative w-1/2 h-full border-r border-brand-orange/50">
+                          <Image src={item.before_image || '/placeholder-car.jpg'} alt="Before" fill className="object-cover" sizes="(max-width: 768px) 50vw, 33vw" />
+                        </div>
+                        <div className="relative w-1/2 h-full">
+                          <Image src={item.after_image || '/placeholder-car.jpg'} alt="After" fill className="object-cover" sizes="(max-width: 768px) 50vw, 33vw" />
+                        </div>
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="bg-brand-orange p-1 rounded-full text-white shadow-xl shadow-brand-orange/40">
                                 <ArrowLeftRight size={16} />
@@ -116,6 +159,96 @@ export default function AdminGalleryPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Add Project Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-brand-dark border border-brand-gray rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-brand-gray sticky top-0 bg-brand-dark/95 backdrop-blur-sm z-10">
+                <h2 className="text-xl font-bold text-white">Add Restoration Project</h2>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 text-brand-silver hover:text-white hover:bg-brand-gray rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <Input 
+                    label="Project Title" 
+                    id="title" 
+                    value={formData.title} 
+                    onChange={handleInputChange} 
+                    required 
+                    placeholder="e.g. 1969 Mustang Mach 1 Restoration"
+                  />
+                  
+                  <Input 
+                    label="Description" 
+                    id="description" 
+                    as="textarea"
+                    rows={3}
+                    value={formData.description} 
+                    onChange={handleInputChange} 
+                    placeholder="Brief details about the restoration work done..."
+                  />
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <Input 
+                      label="Before Image URL" 
+                      id="before_image" 
+                      value={formData.before_image} 
+                      onChange={handleInputChange} 
+                      required 
+                      placeholder="https://example.com/before.jpg"
+                    />
+                    <Input 
+                      label="After Image URL" 
+                      id="after_image" 
+                      value={formData.after_image} 
+                      onChange={handleInputChange} 
+                      required 
+                      placeholder="https://example.com/after.jpg"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-4 pt-6 border-t border-brand-gray">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setIsModalOpen(false)}
+                      className="border-brand-gray text-brand-silver hover:bg-brand-gray hover:text-white"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      variant="primary" 
+                      disabled={isSubmitting}
+                      className="flex items-center gap-2 min-w-[140px] justify-center"
+                    >
+                      {isSubmitting ? <Loader2 className="animate-spin w-5 h-5" /> : 'Save Project'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

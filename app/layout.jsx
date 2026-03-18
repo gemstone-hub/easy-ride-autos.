@@ -3,6 +3,7 @@ import Navbar from '../src/components/layout/Navbar';
 import Footer from '../src/components/layout/Footer';
 import ScrollToTop from '../src/components/ui/ScrollToTop';
 import { AuthProvider } from '../src/contexts/AuthContext';
+import { Toaster } from 'react-hot-toast';
 
 export const viewport = {
   themeColor: '#FF5C00',
@@ -17,6 +18,16 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="antialiased">
+        <Toaster 
+          position="bottom-right" 
+          toastOptions={{
+            style: {
+              background: '#1A1A1A',
+              color: '#fff',
+              border: '1px solid #333',
+            },
+          }} 
+        />
         <AuthProvider>
           <div className="flex flex-col min-h-screen">
             <Navbar />

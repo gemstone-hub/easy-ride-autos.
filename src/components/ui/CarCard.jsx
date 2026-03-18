@@ -5,9 +5,13 @@ import { Settings, Calendar, Navigation, Heart, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import Button from './Button';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import Image from 'next/image';
 
 const CarCard = ({ car, isFavorited: initialFavorited = false }) => {
   const { user } = useAuth();
+  const router = useRouter();
   const [isFavorited, setIsFavorited] = useState(initialFavorited);
   const [favLoading, setFavLoading] = useState(false);
 
@@ -20,7 +24,8 @@ const CarCard = ({ car, isFavorited: initialFavorited = false }) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) {
-      alert('Please log in to save favorites');
+      toast.error('Please log in to save favorites');
+      router.push('/login');
       return;
     }
 
@@ -36,6 +41,7 @@ const CarCard = ({ car, isFavorited: initialFavorited = false }) => {
         setIsFavorited(true);
       }
     } catch (error) {
+      toast.error('Failed to update favorites: ' + error.message);
       console.error('Favorite error:', error);
     } finally {
       setFavLoading(false);
@@ -46,12 +52,13 @@ const CarCard = ({ car, isFavorited: initialFavorited = false }) => {
     <div className="bg-brand-gray/20 rounded-2xl overflow-hidden border border-brand-gray transition-all duration-300 hover:border-brand-orange/50 hover:shadow-2xl hover:shadow-brand-orange/10 flex flex-col h-full relative group">
       {/* Image Container - Wraps image in a Link for navigation */}
       <div className="aspect-[16/10] overflow-hidden relative">
-        <Link href={`/cars/${car.id}`} className="block h-full w-full">
-          <img 
-            src={car.image} 
+        <Link href={`/cars/${car.id}`} className="block h-full w-full relative">
+          <Image 
+            src={car.image || '/placeholder-car.jpg'} 
             alt={car.title} 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            loading="lazy"
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         </Link>
         <div className="absolute top-4 left-4 flex gap-2">

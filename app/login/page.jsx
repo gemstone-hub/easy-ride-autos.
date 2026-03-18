@@ -31,11 +31,7 @@ export default function LoginPage() {
         .eq('id', data.user.id)
         .single();
 
-      if (profileData?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/account');
-      }
+      router.push('/');
     } catch (err) {
       setError(err.message || 'Failed to sign in');
     } finally {

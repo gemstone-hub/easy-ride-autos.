@@ -1,7 +1,7 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, User, LogOut, LayoutDashboard, Heart } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -9,14 +9,29 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { user, profile, isAdmin, signOut, loading } = useAuth();
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const allNavLinks = [
     { name: 'Home', path: '/', public: true },
-    { name: 'Available Cars', path: '/cars', public: false },
-    { name: 'Gallery', path: '/gallery', public: false },
-    { name: 'About Us', path: '/about', public: false },
-    { name: 'Contact', path: '/contact', public: false },
+    { name: 'Available Cars', path: '/cars', public: true },
+    { name: 'Gallery', path: '/gallery', public: true },
+    { name: 'About Us', path: '/about', public: true },
+    { name: 'Contact', path: '/contact', public: true },
   ];
 
   const navLinks = allNavLinks.filter(link => link.public || user);
@@ -35,11 +50,11 @@ const Navbar = () => {
       setShowUserMenu(false);
       setIsOpen(false);
       
-      // 3. Force a hard redirect to home to ensure fresh state
-      window.location.href = '/';
+      // 3. Navigate gracefully
+      router.push('/');
     } catch (error) {
       console.error('Signout failed:', error);
-      window.location.href = '/'; // Fallback redirect
+      router.push('/'); // Fallback redirect
     }
   };
 
@@ -75,7 +90,7 @@ const Navbar = () => {
               {loading ? (
                 <div className="w-8 h-8 rounded-full border-2 border-brand-orange border-t-transparent animate-spin"></div>
               ) : user ? (
-                <div className="relative">
+                <div className="relative" ref={menuRef}>
                   <button 
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center gap-2 text-brand-silver hover:text-white transition-colors"
@@ -109,12 +124,12 @@ const Navbar = () => {
                         Profile Settings
                       </Link>
                       <Link 
-                        href="/favorites" 
+                        href="/chat" 
                         onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-brand-silver hover:text-white hover:bg-brand-gray transition-colors"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-brand-silver hover:text-white hover:bg-brand-gray transition-colors border-t border-brand-gray/50 pt-2"
                       >
-                        <Heart className="w-4 h-4" />
-                        My Favorites
+                        <MessageCircle className="w-4 h-4" />
+                        Live Support
                       </Link>
                       <button 
                         onClick={handleSignOut}

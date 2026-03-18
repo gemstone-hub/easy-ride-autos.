@@ -14,6 +14,7 @@ import {
 import Input from '../../src/components/ui/Input';
 import Button from '../../src/components/ui/Button';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -26,7 +27,6 @@ export default function ContactPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -35,25 +35,26 @@ export default function ContactPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
-    setError('');
 
     try {
       const { error: insertError } = await supabase
         .from('contact_messages')
         .insert([{
-          full_name: formData.name,
+          name: formData.name,
           email: formData.email,
-          phone: formData.phone,
-          subject: formData.subject,
-          message: formData.message
+          message: `[${formData.subject}]\nPhone: ${formData.phone}\n\n${formData.message}`
         }]);
 
       if (insertError) throw insertError;
       
       setSubmitted(true);
+      toast.success('Message sent successfully!');
     } catch (err) {
-      setError('Failed to send message. Please try again or call us directly.');
+      const errorMessage = err.message || err.details || (typeof err === 'string' ? err : 'Submission failed');
+      toast.error(`Error: ${errorMessage}`);
       console.error('Contact error:', err);
     } finally {
       setIsSubmitting(false);
@@ -146,7 +147,7 @@ export default function ContactPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <Input 
-                label="Full Name" 
+                label="Name" 
                 id="name" 
                 value={formData.name} 
                 onChange={handleChange} 
@@ -154,7 +155,7 @@ export default function ContactPage() {
                 placeholder="John Doe" 
               />
               <Input 
-                label="Email Address" 
+                label="Email" 
                 type="email" 
                 id="email" 
                 value={formData.email} 
@@ -162,15 +163,13 @@ export default function ContactPage() {
                 required 
                 placeholder="john@example.com" 
               />
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
               <Input 
                 label="Phone Number" 
                 id="phone" 
                 value={formData.phone} 
                 onChange={handleChange} 
-                placeholder="+234..." 
+                required 
+                placeholder="e.g. 08123456789" 
               />
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-brand-silver">Subject</label>
@@ -180,11 +179,11 @@ export default function ContactPage() {
                   value={formData.subject}
                   onChange={handleChange}
                 >
-                  <option>General Inquiry</option>
-                  <option>Vehicle Inquiry</option>
-                  <option>Restoration Quote</option>
-                  <option>Finance Options</option>
-                </select>
+                    <option>General Inquiry</option>
+                    <option>Vehicle Inquiry</option>
+                    <option>Restoration Quote</option>
+                    <option>Finance Options</option>
+                  </select>
               </div>
             </div>
 
@@ -198,12 +197,6 @@ export default function ContactPage() {
               required 
               placeholder="Tell us what you're looking for..." 
             />
-
-            {error && (
-              <div className="text-red-500 text-sm font-medium bg-red-500/10 p-4 rounded-lg">
-                {error}
-              </div>
-            )}
 
             <Button 
               type="submit" 

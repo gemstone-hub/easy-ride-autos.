@@ -2,6 +2,7 @@
 import React from 'react';
 import { Shield, Target, Users, Gem } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 export default function AboutPage() {
   const values = [
@@ -58,10 +59,12 @@ export default function AboutPage() {
           className="relative"
         >
           <div className="aspect-square md:aspect-[4/3] rounded-3xl overflow-hidden border-2 border-brand-gray/50 relative z-10">
-            <img 
+            <Image 
               src="/about-us.jpg" 
               alt="Founder of Easy Ride Autos" 
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
           <p className="text-center text-brand-silver mt-4 italic font-medium relative z-10">"My mission is to eliminate the hidden risks of imported used vehicles."</p>

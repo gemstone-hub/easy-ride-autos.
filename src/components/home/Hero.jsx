@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Button from '../ui/Button';
 import { ArrowRight, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
 
 const Hero = ({ cars = [] }) => {
   return (
@@ -51,10 +52,13 @@ const Hero = ({ cars = [] }) => {
             className="relative"
           >
             <div className="relative z-10 rounded-[2.5rem] overflow-hidden border border-brand-gray/50 shadow-2xl">
-              <img 
+              <Image 
                 src={cars[0]?.image || "/images/hero-suv.png"} 
                 alt="Premium Vehicle" 
-                className="w-full aspect-[4/3] object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-transparent to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 p-6 backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl">

@@ -1,116 +1,279 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
-import { MessageSquare, Mail, Phone, Calendar, Trash2 } from 'lucide-react';
+import { Mail, Trash2, Send, Search, Loader2, MessageSquare, Clock, User, Reply } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminMessagesPage() {
-  const [messages, setMessages] = useState([]);
+  const [viewMode, setViewMode] = useState('inquiries'); // 'inquiries' or 'chats'
+  const [inquiries, setInquiries] = useState([]);
+  const [chatUsers, setChatUsers] = useState([]);
+  const [selectedInquiry, setSelectedInquiry] = useState(null);
+  const [selectedChatUser, setSelectedChatUser] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const scrollRef = useRef(null);
 
-  const fetchMessages = async () => {
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
+
+  const fetchInitialData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch inquiries
+      const { data: inqData } = await supabase
         .from('contact_messages')
         .select('*')
         .order('created_at', { ascending: false });
+      setInquiries(inqData || []);
+
+      // Fetch users who have chats
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('*, chats!inner(*)')
+        .order('id', { foreignTable: 'chats', ascending: false });
       
-      if (error) throw error;
-      setMessages(data || []);
+      // Filter unique users by id
+      const uniqueUsers = [];
+      const userIds = new Set();
+      if (usersData) {
+        usersData.forEach(u => {
+          if (!userIds.has(u.id)) {
+            userIds.add(u.id);
+            uniqueUsers.push(u);
+          }
+        });
+      }
+      setChatUsers(uniqueUsers);
+
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error('Error fetching admin data:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  // Chat logic
   useEffect(() => {
-    fetchMessages();
-  }, []);
+    if (!selectedChatUser) {
+      setChatMessages([]);
+      return;
+    }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this message?')) return;
+    const fetchChatMessages = async () => {
+      const { data } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('user_id', selectedChatUser.id)
+        .order('created_at', { ascending: true });
+      setChatMessages(data || []);
+    };
 
+    fetchChatMessages();
+
+    const channel = supabase
+      .channel(`admin_chat:${selectedChatUser.id}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'chats',
+        filter: `user_id=eq.${selectedChatUser.id}`
+      }, (payload) => {
+        setChatMessages((prev) => [...prev, payload.new]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedChatUser]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  const handleSendChat = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || sending || !selectedChatUser) return;
+
+    setSending(true);
     try {
-      const { error } = await supabase.from('contact_messages').delete().eq('id', id);
+      const { error } = await supabase
+        .from('chats')
+        .insert([{
+          user_id: selectedChatUser.id,
+          sender_role: 'admin',
+          content: newMessage.trim(),
+        }]);
+
       if (error) throw error;
-      setMessages(messages.filter(m => m.id !== id));
+      setNewMessage('');
     } catch (error) {
-      alert('Error deleting message: ' + error.message);
+      console.error('Error sending admin chat:', error);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleDeleteInquiry = async (id) => {
+    if (!window.confirm('Delete this inquiry?')) return;
+    const { error } = await supabase.from('contact_messages').delete().eq('id', id);
+    if (!error) {
+      setInquiries(inquiries.filter(i => i.id !== id));
+      if (selectedInquiry?.id === id) setSelectedInquiry(null);
     }
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-NG', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return new Date(dateString).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Customer Inquiries</h1>
-        <p className="text-brand-silver">Manage messages and inquiries from your potential customers.</p>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Inbox & Chat</h1>
+          <p className="text-brand-silver">Manage customer inquiries and real-time chats.</p>
+        </div>
+        
+        <div className="flex bg-brand-gray/20 p-1 rounded-xl border border-brand-gray">
+          <button 
+            onClick={() => setViewMode('inquiries')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'inquiries' ? 'bg-brand-orange text-white shadow-lg' : 'text-brand-silver hover:text-white'}`}
+          >
+            Inquiries
+          </button>
+          <button 
+            onClick={() => setViewMode('chats')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'chats' ? 'bg-brand-orange text-white shadow-lg' : 'text-brand-silver hover:text-white'}`}
+          >
+            Live Chat
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <AnimatePresence mode="popLayout">
-          {loading ? (
-            <div className="py-20 text-center text-brand-silver italic">Loading inquiries...</div>
-          ) : messages.length === 0 ? (
-            <div className="py-20 text-center text-brand-silver italic bg-brand-gray/10 rounded-2xl border border-dashed border-brand-gray">
-              No inquiries received yet.
-            </div>
-          ) : (
-            messages.map((msg, index) => (
-              <motion.div
-                key={msg.id}
-                layout
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="bg-brand-gray/20 rounded-2xl border border-brand-gray p-6 hover:border-brand-orange/30 transition-all group"
-              >
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-brand-orange/10 p-3 rounded-xl text-brand-orange">
-                      <MessageSquare size={24} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white mb-1">{msg.full_name}</h3>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-brand-silver">
-                        <span className="flex items-center gap-1"><Mail size={14} /> {msg.email}</span>
-                        {msg.phone && <span className="flex items-center gap-1"><Phone size={14} /> {msg.phone}</span>}
-                        <span className="flex items-center gap-1"><Calendar size={14} /> {formatDate(msg.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-brand-gray/40 text-brand-silver text-[10px] font-bold uppercase py-1 px-3 rounded-full">
-                      {msg.subject}
-                    </span>
-                    <button 
-                      onClick={() => handleDelete(msg.id)}
-                      className="p-2 text-brand-silver hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Sidebar */}
+        <div className="lg:col-span-1 bg-brand-gray/20 border border-brand-gray rounded-2xl flex flex-col h-[650px] overflow-hidden">
+          <div className="p-4 border-b border-brand-gray bg-brand-dark/50">
+            <h2 className="font-semibold text-white">{viewMode === 'inquiries' ? 'Recent Inquiries' : 'Active Chats'}</h2>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {loading ? (
+              <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin text-brand-orange" /></div>
+            ) : (
+              <div className="divide-y divide-brand-gray/30">
+                {viewMode === 'inquiries' ? (
+                  inquiries.map((inq) => (
+                    <button
+                      key={inq.id}
+                      onClick={() => setSelectedInquiry(inq)}
+                      className={`w-full text-left p-4 hover:bg-brand-gray/30 transition-all ${selectedInquiry?.id === inq.id ? 'bg-brand-orange/10 border-l-4 border-brand-orange' : 'border-l-4 border-transparent'}`}
                     >
-                      <Trash2 size={18} />
+                      <div className="flex justify-between items-baseline mb-1">
+                        <span className="font-bold text-white truncate max-w-[120px]">{inq.name}</span>
+                        <span className="text-[10px] text-brand-silver">{formatDate(inq.created_at)}</span>
+                      </div>
+                      <p className="text-xs text-brand-silver truncate">{inq.message}</p>
                     </button>
-                  </div>
-                </div>
+                  ))
+                ) : (
+                  chatUsers.map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => setSelectedChatUser(u)}
+                      className={`w-full text-left p-4 hover:bg-brand-gray/30 transition-all ${selectedChatUser?.id === u.id ? 'bg-brand-orange/10 border-l-4 border-brand-orange' : 'border-l-4 border-transparent'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded-full bg-brand-orange/10 flex items-center justify-center text-brand-orange">
+                            <User size={20} />
+                         </div>
+                         <div className="flex-1 min-w-0">
+                            <h4 className="text-white font-bold truncate text-sm">{u.full_name}</h4>
+                            <p className="text-xs text-brand-silver truncate">{u.email}</p>
+                         </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+                {(viewMode === 'inquiries' ? inquiries : chatUsers).length === 0 && (
+                   <div className="p-10 text-center text-brand-silver italic text-sm">Nothing found.</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
-                <div className="bg-brand-dark/50 p-6 rounded-xl border border-brand-gray/50 text-brand-silver leading-relaxed whitespace-pre-wrap">
-                  {msg.message}
+        {/* Content View */}
+        <div className="lg:col-span-2 bg-brand-gray/20 border border-brand-gray rounded-2xl flex flex-col h-[650px] overflow-hidden">
+          {viewMode === 'inquiries' ? (
+            selectedInquiry ? (
+              <div className="flex flex-col h-full">
+                <div className="p-8 border-b border-brand-gray bg-brand-dark/30 flex justify-between items-start">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-2">{selectedInquiry.name}</h2>
+                    <p className="text-brand-silver">{selectedInquiry.email}</p>
+                  </div>
+                  <button onClick={() => handleDeleteInquiry(selectedInquiry.id)} className="text-red-500 p-2 hover:bg-red-500/10 rounded-lg"><Trash2 size={20} /></button>
                 </div>
-              </motion.div>
-            ))
+                <div className="flex-1 p-8 overflow-y-auto text-brand-silver whitespace-pre-wrap leading-relaxed">
+                  {selectedInquiry.message}
+                </div>
+                <div className="p-6 border-t border-brand-gray">
+                   <a href={`mailto:${selectedInquiry.email}`} className="bg-brand-orange text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Reply size={20} /> Reply via Email</a>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-brand-silver opacity-40">
+                <MessageSquare size={48} className="mb-4" />
+                <p>Select an inquiry to read</p>
+              </div>
+            )
+          ) : (
+            selectedChatUser ? (
+              <div className="flex flex-col h-full">
+                <div className="p-6 border-b border-brand-gray bg-brand-dark/30">
+                  <h3 className="text-xl font-bold text-white">{selectedChatUser.full_name}</h3>
+                  <p className="text-xs text-brand-silver tracking-wider uppercase font-medium">Real-time Support Session</p>
+                </div>
+                <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
+                  {chatMessages.map(msg => {
+                    const isAdmin = msg.sender_role === 'admin';
+                    return (
+                      <div key={msg.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[70%] p-3 rounded-2xl text-sm ${isAdmin ? 'bg-brand-orange text-white rounded-br-none' : 'bg-brand-gray text-brand-silver rounded-bl-none'}`}>
+                          {msg.content}
+                          <span className="block text-[9px] opacity-60 mt-1">{formatDate(msg.created_at)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <form onSubmit={handleSendChat} className="p-4 border-t border-brand-gray flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Type reply..." 
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    className="flex-1 bg-brand-dark border border-brand-gray rounded-xl px-4 py-2 text-white outline-none focus:border-brand-orange"
+                  />
+                  <button disabled={sending || !newMessage} type="submit" className="bg-brand-orange text-white p-3 rounded-xl"><Send size={20} /></button>
+                </form>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-brand-silver opacity-40">
+                <User size={48} className="mb-4" />
+                <p>Select a user to start chatting</p>
+              </div>
+            )
           )}
-        </AnimatePresence>
+        </div>
       </div>
     </div>
   );

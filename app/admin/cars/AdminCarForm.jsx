@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Save, ArrowLeft } from 'lucide-react';
 import Input from '../../../src/components/ui/Input';
 import Button from '../../../src/components/ui/Button';
+import toast from 'react-hot-toast';
 
 export default function AdminCarForm({ carId, onComplete, onCancel }) {
   const [loading, setLoading] = useState(false);
@@ -60,9 +61,10 @@ export default function AdminCarForm({ carId, onComplete, onCancel }) {
         if (insertError) throw insertError;
       }
 
+      toast.success(carId ? 'Vehicle updated successfully' : 'Vehicle added successfully');
       onComplete();
     } catch (saveError) {
-      alert('Error saving car: ' + saveError.message);
+      toast.error('Error saving car: ' + saveError.message);
     } finally {
       setLoading(false);
     }

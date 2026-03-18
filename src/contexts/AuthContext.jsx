@@ -1,5 +1,6 @@
 'use client';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
@@ -8,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
@@ -60,6 +62,8 @@ export const AuthProvider = ({ children }) => {
       if (event === 'INITIAL_SESSION') {
         if (mounted) setLoading(false);
       }
+      
+      router.refresh();
     });
 
     return () => {
@@ -74,6 +78,7 @@ export const AuthProvider = ({ children }) => {
     signOut: async () => {
       try {
         await supabase.auth.signOut();
+        router.refresh();
       } catch (error) {
         console.error('Sign out error:', error);
       } finally {

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../../src/lib/supabase';
+import Image from 'next/image';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -89,7 +90,14 @@ export default function CarDetailsPage({ params }) {
           className="lg:col-span-8"
         >
           <div className="aspect-video w-full rounded-2xl overflow-hidden border border-brand-gray mb-8 relative group">
-            <img src={car.image} alt={car.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <Image 
+              src={car.image || '/placeholder-car.jpg'} 
+              alt={car.title} 
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105" 
+              sizes="(max-width: 1024px) 100vw, 66vw"
+              priority
+            />
             <div className="absolute top-4 left-4">
               <span className={`px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider shadow-lg backdrop-blur-md ${
                 car.status === 'Available' ? 'bg-green-500/90 text-white' : 'bg-brand-orange/90 text-white'

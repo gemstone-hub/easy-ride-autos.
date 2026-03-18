@@ -6,6 +6,8 @@ import Button from '../../../src/components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import AdminCarForm from './AdminCarForm';
+import toast from 'react-hot-toast';
+import Image from 'next/image';
 
 export default function AdminCarsPage() {
   const [cars, setCars] = useState([]);
@@ -42,8 +44,9 @@ export default function AdminCarsPage() {
       const { error } = await supabase.from('cars').delete().eq('id', id);
       if (error) throw error;
       setCars(cars.filter(car => car.id !== id));
+      toast.success('Car deleted successfully');
     } catch (error) {
-      alert('Error deleting car: ' + error.message);
+      toast.error('Error deleting car: ' + error.message);
     }
   };
 
@@ -150,12 +153,16 @@ export default function AdminCarsPage() {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <img 
-                            src={car.image} 
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-brand-dark">
+                          <Image 
+                            src={car.image || '/placeholder-car.jpg'} 
                             alt={car.title} 
-                            className="w-12 h-12 rounded-lg object-cover bg-brand-dark"
+                            fill
+                            className="object-cover"
+                            sizes="48px"
                           />
-                          <div>
+                        </div>
+                        <div>
                             <div className="text-white font-bold">{car.title}</div>
                             <div className="text-brand-silver text-xs truncate max-w-[200px]">{car.subtitle}</div>
                           </div>
