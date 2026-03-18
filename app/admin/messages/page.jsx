@@ -18,25 +18,47 @@ export default function AdminMessagesPage() {
 
   useEffect(() => {
     fetchInitialData();
+
+    // Global subscription for new messages to update the user list in real-time
+    const globalChannel = supabase
+      .channel('admin_global_chats')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'chats' 
+      }, () => {
+        // Refresh the user list when any new message arrives
+        fetchChatUsers();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(globalChannel);
+    };
   }, []);
 
   const fetchInitialData = async () => {
     setLoading(true);
-    try {
-      // Fetch inquiries
-      const { data: inqData } = await supabase
-        .from('contact_messages')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setInquiries(inqData || []);
+    await Promise.all([fetchInquiries(), fetchChatUsers()]);
+    setLoading(false);
+  };
 
+  const fetchInquiries = async () => {
+    const { data } = await supabase
+      .from('contact_messages')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setInquiries(data || []);
+  };
+
+  const fetchChatUsers = async () => {
+    try {
       // Fetch users who have chats
-      const { data: usersData, error: usersError } = await supabase
+      const { data: usersData } = await supabase
         .from('profiles')
-        .select('*, chats!inner(*)')
+        .select('*, chats!inner(created_at)')
         .order('id', { foreignTable: 'chats', ascending: false });
       
-      // Filter unique users by id
       const uniqueUsers = [];
       const userIds = new Set();
       if (usersData) {
@@ -48,15 +70,12 @@ export default function AdminMessagesPage() {
         });
       }
       setChatUsers(uniqueUsers);
-
     } catch (error) {
-      console.error('Error fetching admin data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching chat users:', error);
     }
   };
 
-  // Chat logic
+  // Chat messages subscription for the SELECTED user
   useEffect(() => {
     if (!selectedChatUser) {
       setChatMessages([]);
@@ -117,6 +136,32 @@ export default function AdminMessagesPage() {
       console.error('Error sending admin chat:', error);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleReplyViaChat = async (email) => {
+    let user = chatUsers.find(u => u.email === email);
+    
+    if (!user) {
+      setLoading(true);
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .single();
+      setLoading(false);
+
+      if (data) {
+        user = data;
+        setChatUsers(prev => [user, ...prev]);
+      }
+    }
+
+    if (user) {
+      setSelectedChatUser(user);
+      setViewMode('chats');
+    } else {
+      alert('This user is not registered on the platform. Please reply via email.');
     }
   };
 
@@ -228,15 +273,7 @@ export default function AdminMessagesPage() {
                 <div className="p-6 border-t border-brand-gray flex flex-col sm:flex-row gap-4">
                    <a href={`mailto:${selectedInquiry.email}`} className="flex-1 bg-brand-gray/30 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-gray/50 transition-all border border-brand-gray"><Reply size={20} /> Reply via Email</a>
                    <button 
-                    onClick={async () => {
-                      const user = chatUsers.find(u => u.email === selectedInquiry.email);
-                      if (user) {
-                        setSelectedChatUser(user);
-                        setViewMode('chats');
-                      } else {
-                        alert('This user is not registered for Live Chat. Please reply via email.');
-                      }
-                    }}
+                    onClick={() => handleReplyViaChat(selectedInquiry.email)}
                     className="flex-1 bg-brand-orange text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all shadow-lg shadow-brand-orange/20"
                    >
                      <MessageSquare size={20} /> Reply via Live Chat
