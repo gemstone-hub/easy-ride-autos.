@@ -76,7 +76,10 @@ export default function ContactPage() {
           <p className="text-brand-silver text-lg mb-8">
             Thank you for reaching out to Easy Ride Autos. One of our representatives will contact you shortly regarding your {formData.subject.toLowerCase()}.
           </p>
-          <Button variant="primary" onClick={() => setSubmitted(false)}>Send Another Message</Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button variant="primary" onClick={() => setSubmitted(false)}>Send Another Message</Button>
+            <Button href="/" variant="secondary">Back to Home</Button>
+          </div>
         </motion.div>
       </div>
     );

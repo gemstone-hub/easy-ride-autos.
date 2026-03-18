@@ -225,8 +225,22 @@ export default function AdminMessagesPage() {
                 <div className="flex-1 p-8 overflow-y-auto text-brand-silver whitespace-pre-wrap leading-relaxed">
                   {selectedInquiry.message}
                 </div>
-                <div className="p-6 border-t border-brand-gray">
-                   <a href={`mailto:${selectedInquiry.email}`} className="bg-brand-orange text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Reply size={20} /> Reply via Email</a>
+                <div className="p-6 border-t border-brand-gray flex flex-col sm:flex-row gap-4">
+                   <a href={`mailto:${selectedInquiry.email}`} className="flex-1 bg-brand-gray/30 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-gray/50 transition-all border border-brand-gray"><Reply size={20} /> Reply via Email</a>
+                   <button 
+                    onClick={async () => {
+                      const user = chatUsers.find(u => u.email === selectedInquiry.email);
+                      if (user) {
+                        setSelectedChatUser(user);
+                        setViewMode('chats');
+                      } else {
+                        alert('This user is not registered for Live Chat. Please reply via email.');
+                      }
+                    }}
+                    className="flex-1 bg-brand-orange text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-opacity-90 transition-all shadow-lg shadow-brand-orange/20"
+                   >
+                     <MessageSquare size={20} /> Reply via Live Chat
+                   </button>
                 </div>
               </div>
             ) : (
