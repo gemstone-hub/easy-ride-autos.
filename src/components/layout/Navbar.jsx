@@ -135,12 +135,12 @@ const Navbar = () => {
                       </Link>
 
                       <Link 
-                        href="/account?tab=support" 
+                        href="/account" 
                         onClick={() => setShowUserMenu(false)}
-                        className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname.includes('tab=support') ? 'bg-brand-orange text-white' : 'text-brand-silver hover:text-white hover:bg-brand-gray'}`}
+                        className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname === '/account' ? 'bg-brand-orange text-white' : 'text-brand-silver hover:text-white hover:bg-brand-gray'}`}
                       >
-                        <MessageCircle size={18} />
-                        Live Support
+                        <UserCircle size={18} />
+                        Profile Settings
                       </Link>
 
                       <Link 
@@ -245,14 +245,6 @@ const Navbar = () => {
                 >
                   <UserCircle size={20} />
                   My Account
-                </Link>
-                <Link 
-                  href="/account?tab=support" 
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-brand-silver hover:text-white hover:bg-brand-gray"
-                >
-                  <MessageCircle size={20} />
-                  Live Support
                 </Link>
                 <button 
                   onClick={handleSignOut}
