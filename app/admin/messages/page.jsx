@@ -134,6 +134,7 @@ export default function AdminMessagesPage() {
       setNewMessage('');
     } catch (error) {
       console.error('Error sending admin chat:', error);
+      alert('Failed to send message: ' + error.message);
     } finally {
       setSending(false);
     }
@@ -188,23 +189,18 @@ export default function AdminMessagesPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-white">Inbox & Chat</h1>
-          <p className="text-brand-silver">Manage customer inquiries and real-time chats.</p>
+          <p className="text-brand-silver">Manage customer inquiries and real-time support.</p>
         </div>
         
-        <div className="flex bg-brand-gray/20 p-1 rounded-xl border border-brand-gray">
+        {viewMode === 'chats' && (
           <button 
             onClick={() => setViewMode('inquiries')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'inquiries' ? 'bg-brand-orange text-white shadow-lg' : 'text-brand-silver hover:text-white'}`}
+            className="flex items-center gap-2 text-brand-silver hover:text-white transition-colors bg-brand-gray/20 px-4 py-2 rounded-xl border border-brand-gray"
           >
-            Inquiries
+            <ArrowLeft size={18} />
+            Back to Inquiries
           </button>
-          <button 
-            onClick={() => setViewMode('chats')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'chats' ? 'bg-brand-orange text-white shadow-lg' : 'text-brand-silver hover:text-white'}`}
-          >
-            Live Chat
-          </button>
-        </div>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
