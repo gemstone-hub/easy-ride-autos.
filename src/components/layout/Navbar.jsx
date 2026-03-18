@@ -135,15 +135,6 @@ const Navbar = () => {
                       </Link>
 
                       <Link 
-                        href="/account" 
-                        onClick={() => setShowUserMenu(false)}
-                        className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname === '/account' ? 'bg-brand-orange text-white' : 'text-brand-silver hover:text-white hover:bg-brand-gray'}`}
-                      >
-                        <UserCircle size={18} />
-                        Profile Settings
-                      </Link>
-
-                      <Link 
                         href="/favorites" 
                         onClick={() => setShowUserMenu(false)}
                         className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname === '/favorites' ? 'bg-brand-orange text-white' : 'text-brand-silver hover:text-white hover:bg-brand-gray'}`}
