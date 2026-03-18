@@ -4,6 +4,14 @@ import Footer from '../src/components/layout/Footer';
 import ScrollToTop from '../src/components/ui/ScrollToTop';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
+import { Montserrat } from 'next/font/google';
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-montserrat',
+  weight: ['300', '400', '500', '600', '700', '800'],
+});
 
 export const viewport = {
   themeColor: '#FF5C00',
@@ -16,8 +24,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className="antialiased">
+    <html lang="en" className={montserrat.variable} suppressHydrationWarning>
+      <body className={`${montserrat.className} antialiased`}>
         <Toaster 
           position="bottom-right" 
           toastOptions={{

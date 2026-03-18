@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { supabase } from '../../src/lib/supabase';
 import { User, Mail, Shield, Save, UserCircle, Loader2, CheckCircle, MessageSquare } from 'lucide-react';
@@ -7,14 +7,14 @@ import Input from '../../src/components/ui/Input';
 import Button from '../../src/components/ui/Button';
 import { motion } from 'framer-motion';
 import ChatWindow from '../../src/components/chat/ChatWindow';
-
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function AccountPage() {
   const { profile, user, loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialTab = searchParams.get('tab') || 'profile';
-  const [activeTab, setActiveTab] = useState(initialTab); // 'profile' or 'support'
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
@@ -22,9 +22,21 @@ export default function AccountPage() {
   });
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login?redirectTo=/account');
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab) setActiveTab(tab);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({ full_name: profile.full_name || '' });
+    }
+  }, [profile]);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -33,6 +45,7 @@ export default function AccountPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) return;
     setLoading(true);
     setSuccess(false);
 
@@ -55,10 +68,13 @@ export default function AccountPage() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-brand-dark">
-        <Loader2 className="w-12 h-12 animate-spin text-brand-orange" />
+        <div className="text-center">
+           <Loader2 className="w-12 h-12 animate-spin text-brand-orange mx-auto mb-4" />
+           <p className="text-brand-silver animate-pulse">Checking authentication...</p>
+        </div>
       </div>
     );
   }
@@ -85,7 +101,7 @@ export default function AccountPage() {
         </div>
 
         <div className="flex flex-col md:flex-row gap-12">
-          {/* Sidebar / Info */}
+          {/* Sidebar */}
           <div className="md:w-1/3">
             <div className="bg-brand-gray/20 rounded-3xl p-8 border border-brand-gray text-center relative overflow-hidden group">
                <div className="absolute inset-0 bg-brand-orange/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -110,7 +126,7 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* Main Area / Form */}
+          {/* Main Area */}
           <div className="md:w-2/3">
             {activeTab === 'profile' ? (
               <motion.div 
@@ -179,10 +195,6 @@ export default function AccountPage() {
             )}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
       </div>
     </div>
   );

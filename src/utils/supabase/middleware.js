@@ -35,17 +35,25 @@ export async function updateSession(request) {
     }
   )
 
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const publicRoutes = ['/', '/login', '/signup', '/about', '/cars', '/gallery', '/contact']
-  const isPublicRoute = publicRoutes.some(route => {
-    if (route === '/') return request.nextUrl.pathname === '/';
-    return request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`);
-  })
+  const pathname = request.nextUrl.pathname;
+  const isExcluded = pathname.startsWith('/_next') || 
+                     pathname.startsWith('/api') || 
+                     pathname.startsWith('/favicon.ico') ||
+                     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp)$/);
 
-  if (!user && !isPublicRoute) {
+  if (isExcluded) return supabaseResponse;
+
+  const protectedRoutes = ['/admin', '/account'];
+  const isProtectedRoute = protectedRoutes.some(route => 
+    pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(url)
   }
 

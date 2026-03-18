@@ -2,7 +2,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, User, LogOut, LayoutDashboard, Heart } from 'lucide-react';
+import { 
+  Menu, 
+  X, 
+  User, 
+  LogOut, 
+  LayoutDashboard, 
+  Heart, 
+  UserCircle, 
+  MessageCircle 
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Navbar = () => {
@@ -38,23 +47,19 @@ const Navbar = () => {
 
   const isActive = (path) => {
     if (path === '/' && pathname !== '/') return false;
+    if (path === '/account' && pathname.startsWith('/account')) return true;
     return pathname.startsWith(path);
   };
 
   const handleSignOut = async () => {
     try {
-      // 1. Call the auth context signout and AWAIT it
       await signOut();
-      
-      // 2. Close all UI menus immediately
       setShowUserMenu(false);
       setIsOpen(false);
-      
-      // 3. Navigate gracefully
       router.push('/');
     } catch (error) {
       console.error('Signout failed:', error);
-      router.push('/'); // Fallback redirect
+      router.push('/');
     }
   };
 
@@ -104,38 +109,54 @@ const Navbar = () => {
                   </button>
                   
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-brand-dark border border-brand-gray rounded-lg shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 mt-2 w-56 bg-brand-dark border border-brand-gray rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="px-4 py-2 border-b border-brand-gray/50 mb-1">
+                         <p className="text-xs text-brand-silver opacity-50 uppercase tracking-widest font-bold">My Account</p>
+                      </div>
+                      
                       {isAdmin && (
                         <Link 
                           href="/admin" 
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-brand-silver hover:text-white hover:bg-brand-gray transition-colors"
+                          className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname.startsWith('/admin') ? 'bg-brand-orange text-white' : 'text-brand-silver hover:text-white hover:bg-brand-gray'}`}
                         >
-                          <LayoutDashboard className="w-4 h-4" />
-                          Admin Panel
+                          <LayoutDashboard size={18} />
+                          Admin Dashboard
                         </Link>
                       )}
+                      
                       <Link 
                         href="/account" 
                         onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-brand-silver hover:text-white hover:bg-brand-gray transition-colors"
+                        className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname === '/account' ? 'bg-brand-orange text-white' : 'text-brand-silver hover:text-white hover:bg-brand-gray'}`}
                       >
-                        <User className="w-4 h-4" />
+                        <UserCircle size={18} />
                         Profile Settings
                       </Link>
+
                       <Link 
-                        href="/chat" 
+                        href="/account?tab=support" 
                         onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-brand-silver hover:text-white hover:bg-brand-gray transition-colors border-t border-brand-gray/50 pt-2"
+                        className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname.includes('tab=support') ? 'bg-brand-orange text-white' : 'text-brand-silver hover:text-white hover:bg-brand-gray'}`}
                       >
-                        <MessageCircle className="w-4 h-4" />
+                        <MessageCircle size={18} />
                         Live Support
                       </Link>
+
+                      <Link 
+                        href="/favorites" 
+                        onClick={() => setShowUserMenu(false)}
+                        className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${pathname === '/favorites' ? 'bg-brand-orange text-white' : 'text-brand-silver hover:text-white hover:bg-brand-gray'}`}
+                      >
+                        <Heart size={18} />
+                        My Favorites
+                      </Link>
+
                       <button 
                         onClick={handleSignOut}
-                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors border-t border-brand-gray mt-2"
+                        className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors border-t border-brand-gray mt-1"
                       >
-                        <LogOut className="w-4 h-4" />
+                        <LogOut size={18} />
                         Sign Out
                       </button>
                     </div>
@@ -189,44 +210,55 @@ const Navbar = () => {
                 <div className="w-8 h-8 rounded-full border-2 border-brand-orange border-t-transparent animate-spin"></div>
               </div>
             ) : !user ? (
-              <div className="pt-4 border-t border-brand-gray grid grid-cols-2 gap-4">
+              <div className="pt-4 border-t border-brand-gray grid grid-cols-2 gap-4 p-2">
                 <Link 
                   href="/login" 
                   onClick={() => setIsOpen(false)}
-                  className="flex justify-center px-3 py-2 rounded-md text-base font-medium text-brand-silver bg-brand-gray"
+                  className="flex justify-center px-3 py-3 rounded-xl text-base font-medium text-brand-silver bg-brand-gray/50 border border-brand-gray"
                 >
                   Login
                 </Link>
                 <Link 
                   href="/signup" 
                   onClick={() => setIsOpen(false)}
-                  className="flex justify-center px-3 py-2 rounded-md text-base font-medium text-white bg-brand-orange"
+                  className="flex justify-center px-3 py-3 rounded-xl text-base font-medium text-white bg-brand-orange shadow-lg shadow-brand-orange/20"
                 >
                   Sign Up
                 </Link>
               </div>
             ) : (
-              <div className="pt-4 border-t border-brand-gray space-y-1">
+              <div className="pt-4 border-t border-brand-gray space-y-1 p-2">
                 {isAdmin && (
                   <Link 
                     href="/admin" 
                     onClick={() => setIsOpen(false)}
-                    className="block px-3 py-2 rounded-md text-base font-medium text-brand-silver hover:text-white"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-brand-silver hover:text-white hover:bg-brand-gray"
                   >
+                    <LayoutDashboard size={20} />
                     Admin Panel
                   </Link>
                 )}
                 <Link 
                   href="/account" 
                   onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-brand-silver hover:text-white"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-brand-silver hover:text-white hover:bg-brand-gray"
                 >
+                  <UserCircle size={20} />
                   My Account
+                </Link>
+                <Link 
+                  href="/account?tab=support" 
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-brand-silver hover:text-white hover:bg-brand-gray"
+                >
+                  <MessageCircle size={20} />
+                  Live Support
                 </Link>
                 <button 
                   onClick={handleSignOut}
-                  className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-red-500/10"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-red-500 hover:bg-red-500/10"
                 >
+                  <LogOut size={20} />
                   Sign Out
                 </button>
               </div>
